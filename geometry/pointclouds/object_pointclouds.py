@@ -39,164 +39,59 @@ class ObjectPointCloudExtractor:
         depth_min_m=0.1,
         depth_max_m=5.0,
 
-        stride=4
+        stride=4,
+        depth_unit=0.001,
     ):
 
         intr = (
             self.generator.intrinsics
         )
 
-        depth_h, depth_w = (
-            depth_frame.shape
-        )
-
         mask_h, mask_w = (
             segmentation_mask.shape
         )
 
-        points = []
+        depth = np.asarray(depth_frame)
+        if depth.ndim != 2:
+            raise ValueError("depth_frame must be a single-channel image")
 
-        # ----------------------------------------------------
-        # Sparse depth traversal
-        # ----------------------------------------------------
+        stride = max(int(stride), 1)
+        sampled = depth[::stride, ::stride].astype(np.float32) * float(depth_unit)
+        v_grid, u_grid = np.indices(sampled.shape, dtype=np.float32)
+        u_depth = u_grid * stride
+        v_depth = v_grid * stride
 
-        for v_depth in range(
-            0,
-            depth_h,
-            stride
-        ):
-
-            for u_depth in range(
-                0,
-                depth_w,
-                stride
-            ):
-
-                # --------------------------------------------
-                # Read depth
-                # --------------------------------------------
-
-                depth_mm = depth_frame[
-                    v_depth,
-                    u_depth
-                ]
-
-                # --------------------------------------------
-                # Invalid depth rejection
-                # --------------------------------------------
-
-                if (
-                    depth_mm == 0 or
-                    depth_mm == 65535
-                ):
-                    continue
-
-                depth_m = (
-                    depth_mm / 1000.0
-                )
-
-                # --------------------------------------------
-                # Depth range filtering
-                # --------------------------------------------
-
-                if (
-                    depth_m < depth_min_m or
-                    depth_m > depth_max_m
-                ):
-                    continue
-
-                # --------------------------------------------
-                # Reproject depth pixel into RGB image
-                # --------------------------------------------
-
-                rgb_pixel = (
-
-                    self.projector
-                    .depth_pixel_to_rgb_pixel(
-
-                        u_depth=u_depth,
-                        v_depth=v_depth,
-
-                        depth_m=depth_m
-                    )
-                )
-
-                if rgb_pixel is None:
-                    continue
-
-                u_rgb, v_rgb = rgb_pixel
-
-                # --------------------------------------------
-                # RGB bounds check
-                # --------------------------------------------
-
-                if (
-                    u_rgb < 0 or
-                    u_rgb >= mask_w
-                ):
-                    continue
-
-                if (
-                    v_rgb < 0 or
-                    v_rgb >= mask_h
-                ):
-                    continue
-
-                # --------------------------------------------
-                # Semantic occupancy test
-                # --------------------------------------------
-
-                if (
-                    segmentation_mask[
-                        v_rgb,
-                        u_rgb
-                    ] == 0
-                ):
-                    continue
-
-                # --------------------------------------------
-                # Backprojection
-                # --------------------------------------------
-
-                x = (
-
-                    (u_depth - intr.cx) *
-
-                    depth_m /
-
-                    intr.fx
-                )
-
-                y = (
-
-                    (v_depth - intr.cy) *
-
-                    depth_m /
-
-                    intr.fy
-                )
-
-                z = depth_m
-
-                points.append(
-                    [x, y, z]
-                )
-
-        # ----------------------------------------------------
-        # Empty cloud handling
-        # ----------------------------------------------------
-
-        if len(points) == 0:
-
-            return np.empty(
-                (0, 3),
-                dtype=np.float32
-            )
-
-        return np.array(
-            points,
-            dtype=np.float32
+        valid = (
+            np.isfinite(sampled)
+            & (sampled >= depth_min_m)
+            & (sampled <= depth_max_m)
+            & (sampled > 0.0)
         )
+        if not np.any(valid):
+            return np.empty((0, 3), dtype=np.float32)
+
+        z = sampled[valid]
+        u = u_depth[valid]
+        v = v_depth[valid]
+        x = (u - intr.cx) * z / intr.fx
+        y = (v - intr.cy) * z / intr.fy
+        points_depth = np.column_stack([x, y, z]).astype(np.float32)
+
+        points_rgb = self.projector.transform_depth_to_rgb_points(points_depth)
+        pixels = self.projector.project_points_to_rgb(points_rgb)
+        in_bounds = (
+            (pixels[:, 0] >= 0)
+            & (pixels[:, 0] < mask_w)
+            & (pixels[:, 1] >= 0)
+            & (pixels[:, 1] < mask_h)
+        )
+        if not np.any(in_bounds):
+            return np.empty((0, 3), dtype=np.float32)
+
+        pixels_in = pixels[in_bounds]
+        points_in = points_rgb[in_bounds]
+        occupied = segmentation_mask[pixels_in[:, 1], pixels_in[:, 0]] > 0
+        return points_in[occupied].astype(np.float32)
 
     # ========================================================
     # Geometry statistics

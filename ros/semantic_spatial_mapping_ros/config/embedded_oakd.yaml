@@ -1,0 +1,91 @@
+profile: embedded_oakd
+
+topics:
+  rgb: /vctr/rgb_raw
+  depth: /vctr/depth_raw
+  rgb_camera_info: /vctr/rgb/camera_info
+  depth_camera_info: /vctr/depth/camera_info
+  odom: /odom
+  pose: /pose
+  semantic_points: /semantic_spatial/points
+  semantic_objects: /semantic_spatial/objects
+  map_points: /semantic_spatial/map
+  debug_overlay: /semantic_spatial/debug_overlay
+  diagnostics: /semantic_spatial/diagnostics
+  vo_odom: /semantic_spatial/visual_odometry
+
+frames:
+  map_frame: map
+  odom_frame: odom
+  base_frame: base_link
+  camera_frame: camera_link
+  rgb_optical_frame: camera_rgb_optical_frame
+  depth_optical_frame: camera_depth_optical_frame
+
+sync:
+  queue_size: 4
+  slop_sec: 0.04
+  max_fps: 10.0
+  camera_info_max_age_sec: 2.0
+  drop_when_busy: true
+
+depth:
+  depth_unit: 0.001
+  min_m: 0.15
+  max_m: 5.0
+  stride: 4
+
+pose:
+  source: tf
+  input_pose: world_base
+  max_age_sec: 0.25
+  max_jump_m: 5.0
+  max_translation_norm_m: 10000.0
+  publish_internal_vslam: false
+  tf_timeout_sec: 0.05
+
+vslam:
+  enabled: false
+  local_mapping: false
+  loop_detection: false
+  use_bow_vocab: false
+  scale_mode: rgbd
+
+segmentation:
+  enabled: true
+  backend: yolo
+  model_path: yolov8n-seg.pt
+  confidence_threshold: 0.45
+  minimum_mask_area: 1500
+  max_masks_per_frame: 8
+  min_depth_support_ratio: 0.05
+  max_border_touch_ratio: 0.35
+  publish_overlay: false
+
+mapping:
+  voxel_size_m: 0.05
+  max_points: 150000
+  max_points_per_frame: 12000
+  max_points_per_object: 4000
+  max_objects: 512
+  object_association_distance_m: 0.75
+  publish_every_n_frames: 5
+
+extrinsics:
+  depth_to_rgb:
+    - [1.0, 0.0, 0.0, 0.03]
+    - [0.0, 1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
+
+logging:
+  enabled: true
+  directory: runtime_logs
+  frame_log_period: 1
+  record_embedded_rosbag: true
+  rosbag_topics: []
+  base_to_camera:
+    - [1.0, 0.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]

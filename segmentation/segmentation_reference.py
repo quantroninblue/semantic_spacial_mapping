@@ -272,6 +272,14 @@ class SegmentationModule:
 
         obb_out = []
 
+        class_ids_out = []
+
+        labels_out = []
+
+        confidences_out = []
+
+        boxes_out = []
+
         # ----------------------------------------------------
         # No masks
         # ----------------------------------------------------
@@ -290,6 +298,14 @@ class SegmentationModule:
                 "masks": [],
 
                 "obbs": [],
+
+                "class_ids": [],
+
+                "labels": [],
+
+                "confidences": [],
+
+                "boxes": [],
 
                 "elapsed_ms": elapsed_ms
             }
@@ -312,6 +328,29 @@ class SegmentationModule:
             .conf
             .cpu()
             .numpy()
+        )
+
+        class_ids = (
+            results[0]
+            .boxes
+            .cls
+            .cpu()
+            .numpy()
+            .astype(int)
+        )
+
+        boxes = (
+            results[0]
+            .boxes
+            .xyxy
+            .cpu()
+            .numpy()
+        )
+
+        names = getattr(
+            results[0],
+            "names",
+            getattr(self.model, "names", {})
         )
 
         # ----------------------------------------------------
@@ -419,6 +458,36 @@ class SegmentationModule:
                 mask_u8
             )
 
+            class_id = int(
+                class_ids[idx]
+            )
+
+            class_ids_out.append(
+                class_id
+            )
+
+            labels_out.append(
+                str(
+                    names.get(
+                        class_id,
+                        class_id
+                    )
+                )
+                if isinstance(names, dict)
+                else str(class_id)
+            )
+
+            confidences_out.append(
+                float(confidence)
+            )
+
+            boxes_out.append(
+                tuple(
+                    int(v)
+                    for v in boxes[idx]
+                )
+            )
+
             # ------------------------------------------------
             # Overlay
             # ------------------------------------------------
@@ -477,6 +546,14 @@ class SegmentationModule:
             "masks": masks_out,
 
             "obbs": obb_out,
+
+            "class_ids": class_ids_out,
+
+            "labels": labels_out,
+
+            "confidences": confidences_out,
+
+            "boxes": boxes_out,
 
             "elapsed_ms": elapsed_ms
         }

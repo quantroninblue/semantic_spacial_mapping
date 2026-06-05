@@ -124,6 +124,18 @@ class DepthToRGBProjector:
 
         return transformed
 
+    def transform_depth_to_rgb_points(
+
+        self,
+
+        points_3d
+    ):
+
+        points = np.asarray(points_3d, dtype=np.float32).reshape(-1, 3)
+        if len(points) == 0:
+            return points
+        return self.extrinsic_transform.transform_pointcloud(points)
+
     # ========================================================
     # RGB Camera 3D -> RGB Image Plane
     # ========================================================
@@ -177,6 +189,31 @@ class DepthToRGBProjector:
 
             int(round(v_rgb))
         )
+
+    def project_points_to_rgb(
+
+        self,
+
+        points_3d
+    ):
+
+        points = np.asarray(points_3d, dtype=np.float32).reshape(-1, 3)
+        if len(points) == 0:
+            return np.empty((0, 2), dtype=np.int32)
+
+        z = points[:, 2]
+        valid_z = z > 0.0
+        u = np.full(len(points), -1, dtype=np.int32)
+        v = np.full(len(points), -1, dtype=np.int32)
+        u[valid_z] = np.rint(
+            points[valid_z, 0] * self.rgb_intrinsics.fx / z[valid_z]
+            + self.rgb_intrinsics.cx
+        ).astype(np.int32)
+        v[valid_z] = np.rint(
+            points[valid_z, 1] * self.rgb_intrinsics.fy / z[valid_z]
+            + self.rgb_intrinsics.cy
+        ).astype(np.int32)
+        return np.column_stack([u, v])
 
     # ========================================================
     # Full RGBD reprojection

@@ -29,96 +29,32 @@ class PointCloudGenerator:
         depth_min_m=0.1,
         depth_max_m=5.0,
 
-        stride=4
+        stride=4,
+        depth_unit=0.001,
     ):
 
-        height, width = (
-            depth_frame.shape
+        depth = np.asarray(depth_frame)
+        if depth.ndim != 2:
+            raise ValueError("depth_frame must be a single-channel image")
+
+        stride = max(int(stride), 1)
+        sampled = depth[::stride, ::stride].astype(np.float32) * float(depth_unit)
+
+        v_coords, u_coords = np.indices(sampled.shape, dtype=np.float32)
+        u = u_coords * stride
+        v = v_coords * stride
+
+        valid = (
+            np.isfinite(sampled)
+            & (sampled >= depth_min_m)
+            & (sampled <= depth_max_m)
+            & (sampled > 0.0)
         )
 
-        points = []
+        if not np.any(valid):
+            return np.empty((0, 3), dtype=np.float32)
 
-        # ----------------------------------------------------
-        # Sparse sampling
-        # ----------------------------------------------------
-
-        for v in range(
-            0,
-            height,
-            stride
-        ):
-
-            for u in range(
-                0,
-                width,
-                stride
-            ):
-
-                depth_mm = depth_frame[
-                    v,
-                    u
-                ]
-
-                # --------------------------------------------
-                # Invalid depth rejection
-                # --------------------------------------------
-
-                if (
-                    depth_mm == 0 or
-                    depth_mm == 65535
-                ):
-                    continue
-
-                depth_m = (
-                    depth_mm / 1000.0
-                )
-
-                if (
-                    depth_m < depth_min_m or
-                    depth_m > depth_max_m
-                ):
-                    continue
-
-                # --------------------------------------------
-                # Backprojection
-                # --------------------------------------------
-
-                x = (
-
-                    (u - self.intrinsics.cx) *
-
-                    depth_m /
-
-                    self.intrinsics.fx
-                )
-
-                y = (
-
-                    (v - self.intrinsics.cy) *
-
-                    depth_m /
-
-                    self.intrinsics.fy
-                )
-
-                z = depth_m
-
-                points.append(
-                    [x, y, z]
-                )
-
-        # ----------------------------------------------------
-        # Convert to numpy
-        # ----------------------------------------------------
-
-        if len(points) == 0:
-
-            return np.empty(
-                (0, 3),
-                dtype=np.float32
-            )
-
-        return np.array(
-            points,
-            dtype=np.float32
-        )
+        z = sampled[valid]
+        x = (u[valid] - self.intrinsics.cx) * z / self.intrinsics.fx
+        y = (v[valid] - self.intrinsics.cy) * z / self.intrinsics.fy
+        return np.column_stack([x, y, z]).astype(np.float32)

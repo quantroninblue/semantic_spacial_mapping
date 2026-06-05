@@ -113,3 +113,5 @@ pytest_cache/
 # ======================================================
 
 *.zip
+external_anirudh_vslam/
+project_state.txt
