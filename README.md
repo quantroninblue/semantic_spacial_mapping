@@ -1,6 +1,6 @@
 # semantic_spatial_mapping
 
-Start here, then scroll to **05.06.26 Session Report** below. That entry records what the repository looked like before this session and what changed during the current integration pass.
+Start here, then scroll to **05.06.26 Integration Report** below. That entry records the baseline repository state and the v2.0 integration changes.
 
 ## Current Purpose
 
@@ -8,7 +8,7 @@ Start here, then scroll to **05.06.26 Session Report** below. That entry records
 
 The current target is a plug-and-play, hardware/software-agnostic perception + VSLAM stack that can run in:
 
-- Gazebo
+- Gazebo simulation trials. See `gazebo_demo/README.md` for the factory world, bridge, perception/VSLAM demo, and exact terminal commands.
 - embedded robot hardware
 - ROS2 bag/replay workflows
 - headless validation runs
@@ -110,11 +110,13 @@ colcon build --packages-select semantic_spatial_mapping_ros
 source install/setup.bash
 ```
 
-Run Gazebo profile:
+Run Gazebo profile for the perception/VSLAM ROS node:
 
 ```bash
 ros2 launch semantic_spatial_mapping_ros gazebo_runtime.launch.py
 ```
+
+For the full Gazebo trial, including the factory world, `factory_bot`, ROS-Gazebo bridge, reactive navigator, and screen-recording command sequence, use [`gazebo_demo/README.md`](gazebo_demo/README.md).
 
 Run embedded OAK-D style profile:
 
@@ -260,11 +262,11 @@ Replace identity extrinsics with measured robot calibration before trusting map 
 - Semantic object fusion is currently nearest-class/centroid based; it needs runtime evaluation.
 - Runtime performance needs profiling on embedded hardware.
 
-## 05.06.26 Session Report
+## 05.06.26 Integration Report
 
 ### Starting Point
 
-Before this session, the repository already had modular research/reference components:
+Before the v2.0 integration pass, the repository already had modular research/reference components:
 
 - `geometry/` for RGB-D backprojection, transforms, point clouds, and OBB support.
 - `segmentation/` with a YOLOv8 segmentation reference.
@@ -276,7 +278,7 @@ Before this session, the repository already had modular research/reference compo
 
 At that stage, the repo was organized around modular perception and VO prototypes. The ROS deployment layer was not yet a working runtime package, pose-source selection was not generalized, world-map storage was append-oriented, RGB-D extraction used more prototype-style loops, and the VO backend pieces from the external VSLAM reference had not been integrated into this repo's `motion/vo` package.
 
-### Changes Added In This Session
+### Changes Added In v2.0
 
 Runtime core:
 
@@ -342,7 +344,7 @@ Tests:
 - Added ROS converter tests that run when ROS message packages are available.
 - Added RGB-D VO PnP test.
 
-### Verification Run In This Session
+### Verification Run
 
 The following local checks passed:
 
@@ -362,7 +364,7 @@ The unit test suite currently reports:
 
 ### Current Interpretation
 
-This session moved the repository from a modular perception/VO reference codebase into a first deployable architecture pass for a hardware/software-agnostic perception + VSLAM stack. The next milestone is runtime validation with Gazebo, rosbag replay, and embedded hardware so the stack can be hardened against real TF trees, topic QoS, depth encodings, CameraInfo timing, calibration, object fusion behavior, and VSLAM tracking quality.
+The v2.0 integration moved the repository from a modular perception/VO reference codebase into a first deployable architecture pass for a hardware/software-agnostic perception + VSLAM stack. The next milestone is runtime validation with Gazebo, rosbag replay, and embedded hardware so the stack can be hardened against real TF trees, topic QoS, depth encodings, CameraInfo timing, calibration, object fusion behavior, and VSLAM tracking quality.
 
 ## Historical Snapshot: Earlier README Direction
 
@@ -402,4 +404,4 @@ The earlier roadmap focused on:
 - loop closure
 - navigation/manipulation integration
 
-That direction remains the project direction. The current README records the newer deployment runtime, ROS2 integration, logging, testing, and object/VSLAM upgrades added on `05.06.26`.
+That direction remains the project direction. The current README records the deployment runtime, ROS2 integration, logging, testing, and object/VSLAM upgrades added on `05.06.26`.

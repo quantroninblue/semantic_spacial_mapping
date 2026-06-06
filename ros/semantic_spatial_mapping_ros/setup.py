@@ -9,13 +9,13 @@ repo_root = Path(__file__).resolve().parents[2]
 repo_packages = find_namespace_packages(
     where=str(repo_root),
     include=[
-        "geometry*",
-        "mapping*",
-        "motion*",
-        "runtime*",
-        "segmentation*",
-        "tracking*",
-        "world*",
+        "geometry", "geometry.*",
+        "mapping", "mapping.*",
+        "motion", "motion.*",
+        "runtime", "runtime.*",
+        "segmentation", "segmentation.*",
+        "tracking", "tracking.*",
+        "world", "world.*",
     ],
     exclude=["external_anirudh_vslam*"],
 )
@@ -25,8 +25,14 @@ setup(
     version="0.1.0",
     packages=[package_name] + repo_packages,
     package_dir={
-        "": str(repo_root),
-        package_name: package_name,
+        "": ".",
+        "geometry": "../../geometry",
+        "mapping": "../../mapping",
+        "motion": "../../motion",
+        "runtime": "../../runtime",
+        "segmentation": "../../segmentation",
+        "tracking": "../../tracking",
+        "world": "../../world",
     },
     data_files=[
         ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),

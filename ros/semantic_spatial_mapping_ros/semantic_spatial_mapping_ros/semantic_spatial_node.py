@@ -49,7 +49,7 @@ class SemanticSpatialNode(Node):
             pose_provider=self.pose_provider,
             segmentation_module=self._build_segmentation(),
         )
-        self.publishers = RuntimePublishers(self, self.config)
+        self.runtime_publishers = RuntimePublishers(self, self.config)
         self.sync = ApproximateRgbdSync(
             queue_size=self.config.sync.queue_size,
             slop_sec=self.config.sync.slop_sec,
@@ -162,7 +162,7 @@ class SemanticSpatialNode(Node):
                 metadata={"rgb_frame_id": rgb_msg.header.frame_id},
             )
             output = self.runtime.update(packet)
-            self.publishers.publish(
+            self.runtime_publishers.publish(
                 output=output,
                 latest_map=self.runtime.latest_map(),
                 rgb_frame_id=rgb_msg.header.frame_id or self.config.frames.rgb_optical_frame,
